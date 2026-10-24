@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.HerBrowser" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenBackground">#F3EEFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>
