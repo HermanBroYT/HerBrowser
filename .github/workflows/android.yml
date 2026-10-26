@@ -22,13 +22,6 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Unpack project
-        run: |
-          test -f HerBrowser-project.zip || { echo "::error::Upload HerBrowser-project.zip to the repo root"; exit 1; }
-          rm -rf app/src app/build.gradle build.gradle settings.gradle gradle.properties
-          unzip -q -o HerBrowser-project.zip
-          test -f app/build.gradle || { echo "::error::app/build.gradle missing after unzip"; exit 1; }
-
       - name: Build APK
         env:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
