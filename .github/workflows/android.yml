@@ -4,9 +4,18 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,20 +31,38 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Unpack project
+      - name: Prepare project
+        shell: bash
         run: |
-          test -f HerBrowser-project.zip || { echo "::error::Upload HerBrowser-project.zip to the repo root"; exit 1; }
-          rm -rf app/src app/build.gradle build.gradle settings.gradle gradle.properties
-          unzip -q -o HerBrowser-project.zip
-          test -f app/build.gradle || { echo "::error::app/build.gradle missing after unzip"; exit 1; }
+          set -euo pipefail
+
+          if [ -f HerBrowser-project.zip ]; then
+            echo "Found HerBrowser-project.zip in repository root"
+            unzip -q -o HerBrowser-project.zip
+          elif [ -f project/HerBrowser-project.zip ]; then
+            echo "Found project/HerBrowser-project.zip"
+            unzip -q -o project/HerBrowser-project.zip
+          else
+            echo "No project ZIP found; checking for Android project files already in the repository."
+          fi
+
+          if [ ! -f app/build.gradle ] && [ ! -f app/build.gradle.kts ]; then
+            echo "::error::Android app module not found. Commit the Android project to the repository root, or add HerBrowser-project.zip to the repository root."
+            echo "Expected app/build.gradle or app/build.gradle.kts."
+            exit 1
+          fi
+
+          if [ ! -f settings.gradle ] && [ ! -f settings.gradle.kts ]; then
+            echo "::error::settings.gradle or settings.gradle.kts not found."
+            exit 1
+          fi
 
       - name: Build APK
-        env:
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle assembleRelease --no-daemon
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HerBrowser-1.7
+          name: HerBrowser
           path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
