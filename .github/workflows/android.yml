@@ -57,8 +57,19 @@ jobs:
             exit 1
           fi
 
+      # ВАЖНО: Если ваша сборка release требует подписи (signingConfig в build.gradle),
+      # вам нужно раскомментировать шаг ниже и добавить секреты в GitHub (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).
+      # Если вы собираете неподписанный APK, оставьте этот шаг закомментированным.
+      
+      # - name: Decode Keystore
+      #   env:
+      #     ENCODED_STRING: ${{ secrets.KEYSTORE_BASE64 }}
+      #   run: |
+      #     echo "$ENCODED_STRING" | base64 --decode > app/keystore.jks
+
       - name: Build APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        # Используем ./gradlew и явно указываем модуль app для надежности
+        run: ./gradlew app:assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
