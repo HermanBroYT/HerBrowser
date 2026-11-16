@@ -2,40 +2,89 @@ name: Android CI
 
 on:
   push:
+    branches: ["**"]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Java 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Gradle 8.5
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.5'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Unpack project
+      # Supports either an Android project committed directly to the repo
+      # or the optional HerBrowser-project.zip file in the repository root.
+      - name: Prepare project
+        id: project
+        shell: bash
         run: |
-          test -f HerBrowser-project.zip || { echo "::error::Upload HerBrowser-project.zip to the repo root"; exit 1; }
-          rm -rf app/src app/build.gradle build.gradle settings.gradle gradle.properties
-          unzip -q -o HerBrowser-project.zip
-          test -f app/build.gradle || { echo "::error::app/build.gradle missing after unzip"; exit 1; }
+          set -euo pipefail
 
-      - name: Build APK
-        env:
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle assembleRelease --no-daemon
+          if [ -f "HerBrowser-project.zip" ]; then
+            mkdir -p "$RUNNER_TEMP/herbrowser-project"
+            unzip -q -o "HerBrowser-project.zip" -d "$RUNNER_TEMP/herbrowser-project"
+            ROOT="$RUNNER_TEMP/herbrowser-project"
+          else
+            ROOT="$GITHUB_WORKSPACE"
+          fi
+
+          # Locate the Gradle project root (supports a ZIP with one enclosing folder).
+          if [ -f "$ROOT/settings.gradle" ] || [ -f "$ROOT/settings.gradle.kts" ]; then
+            PROJECT="$ROOT"
+          else
+            SETTINGS="$(find "$ROOT" -mindepth 2 -maxdepth 4 \\( -name settings.gradle -o -name settings.gradle.kts \\) -print -quit)"
+            if [ -n "$SETTINGS" ]; then
+              PROJECT="$(dirname "$SETTINGS")"
+            elif [ -f "$ROOT/app/build.gradle" ] || [ -f "$ROOT/app/build.gradle.kts" ]; then
+              PROJECT="$ROOT"
+            else
+              echo "::error::Android Gradle project not found. Commit the project files or add HerBrowser-project.zip."
+              exit 1
+            fi
+          fi
+
+          if [ ! -f "$PROJECT/app/build.gradle" ] && [ ! -f "$PROJECT/app/build.gradle.kts" ]; then
+            echo "::error::app/build.gradle or app/build.gradle.kts was not found in $PROJECT"
+            exit 1
+          fi
+
+          echo "dir=$PROJECT" >> "$GITHUB_OUTPUT"
+          echo "Android project directory: $PROJECT"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build installable APK
+        working-directory: ${{ steps.project.outputs.dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew --no-daemon assembleDebug
+          else
+            echo "::warning::Gradle wrapper not found; using the Gradle version supplied by setup-gradle."
+            gradle --no-daemon assembleDebug
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HerBrowser-1.7
-          path: app/build/outputs/apk/release/*.apk
+          name: HerBrowser-1.7-APK
+          path: ${{ steps.project.outputs.dir }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
