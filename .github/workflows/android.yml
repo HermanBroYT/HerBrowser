@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
@@ -18,37 +18,67 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 8.5
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.5'
 
-      - name: Unpack project
+      - name: Find or unpack Android project
+        shell: bash
         run: |
-          test -f HerBrowser-1.7.zip || { echo "::error::Upload HerBrowser-1.7.zip to the repository root"; exit 1; }
-          rm -rf app/src app/build.gradle build.gradle settings.gradle gradle.properties
-          unzip -q -o HerBrowser-1.7.zip
-          test -f app/build.gradle || { echo "::error::app/build.gradle missing after unzip"; exit 1; }
+          set -euo pipefail
+          if [ -f HerBrowser-1.7.zip ]; then
+            mkdir -p extracted
+            unzip -q -o HerBrowser-1.7.zip -d extracted
+          fi
+
+          PROJECT_DIR=""
+          for candidate in . extracted; do
+            if [ -f "$candidate/settings.gradle" ] || [ -f "$candidate/settings.gradle.kts"; then
+              PROJECT_DIR="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$PROJECT_DIR" ]; then
+            SETTINGS_FILE=$(find . -maxdepth 5 \( -name settings.gradle -o -name settings.gradle.kts \) -not -path './.git/*' -not -path './.github/*' -print -quit || true)
+            if [ -n "$SETTINGS_FILE" ]; then
+              PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+            fi
+          fi
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "::error::Android Gradle project not found. Put the project in the repository or add HerBrowser-1.7.zip."
+            exit 1
+          fi
+
+          echo "Project directory: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
-        run: gradle assembleRelease --no-daemon
+        run: gradle -p "$PROJECT_DIR" assembleRelease --no-daemon
 
-      - name: Prepare HerBrowser ZIP
+      - name: Package HerBrowser ZIP
+        shell: bash
         run: |
-          APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
-          test -n "$APK" || { echo "::error::Release APK not found"; exit 1; }
-          mkdir -p package
-          cp "$APK" package/HerBrowser.apk
-          (cd package && zip -q -r ../HerBrowser.zip HerBrowser.apk)
+          set -euo pipefail
+          APK=$(find "$PROJECT_DIR" -path '*/build/outputs/apk/release/*.apk' -type f -print -quit)
+          if [ -z "$APK" ]; then
+            echo "::error::Release APK was not produced. Check Gradle build logs."
+            exit 1
+          fi
+          mkdir -p output
+          cp "$APK" output/HerBrowser.apk
+          (cd output && zip -q HerBrowser.zip HerBrowser.apk)
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: HerBrowser-APK
-          path: package/HerBrowser.apk
+          path: output/HerBrowser.apk
 
-      - name: Upload HerBrowser ZIP
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
           name: HerBrowser-ZIP
-          path: HerBrowser.zip
+          path: output/HerBrowser.zip
