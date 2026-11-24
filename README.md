@@ -23,4 +23,4 @@
 
 Скачивайте последнюю версию **HerBrowser** для Android:
 
-[⬇ Скачать HerBrowser для Android]([https://github.com/USERNAME/REPOSITORY/releases/latest](https://github.com/HermanBroYT/HerBrowser/actions/runs/45077367091/artifacts/14775508300))
+[![Download HerBrowser](https://img.shields.io/badge/Download-HerBrowser%20for%20Android-green?style=for-the-badge&logo=android)]([https://github.com/USERNAME/REPOSITORY/releases/latest/download/HerBrowser.apk](https://github.com/HermanBroYT/HerBrowser/actions/runs/45077367091/artifacts/14775508300))
