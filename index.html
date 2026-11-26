@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src https: http:">
+<title>HerBrowser</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="tabbar">
+  <div id="tabs"></div>
+  <button id="newTab" class="icon" title="Новая вкладка (Ctrl+T)">＋</button>
+  <button id="newPriv" class="icon" title="Приватная вкладка">🕶</button>
+</div>
+
+<div id="toolbar">
+  <button id="back" class="icon" title="Назад">←</button>
+  <button id="fwd" class="icon" title="Вперёд">→</button>
+  <button id="reload" class="icon" title="Обновить (F5)">↻</button>
+  <button id="homeBtn" class="icon" title="Домой">⌂</button>
+  <div id="omni">
+    <button id="shield" class="chip" title="Защита сайтов" hidden></button>
+    <input id="url" type="text" spellcheck="false" autocomplete="off" placeholder="Введите адрес или поисковый запрос">
+    <button id="star" class="icon small" title="В закладки (Ctrl+D)">☆</button>
+  </div>
+  <button id="translate" class="icon" title="Перевести страницу">🌐</button>
+  <button id="copyLink" class="icon" title="Копировать ссылку">📋</button>
+  <button id="menuBtn" class="icon" title="Меню">⋮</button>
+</div>
+
+<div id="findbar" hidden>
+  <input id="findInput" placeholder="Найти на странице" spellcheck="false">
+  <span id="findCount"></span>
+  <button id="findPrev" class="icon small">▲</button>
+  <button id="findNext" class="icon small">▼</button>
+  <button id="findClose" class="icon small">✕</button>
+</div>
+
+<div id="stage">
+  <div id="views"></div>
+
+  <div id="home" hidden>
+    <button id="weather" class="chip weather" title="Погода (Яндекс)">🌡 …</button>
+    <div class="homeBox">
+      <div class="logo">H♥</div>
+      <div class="brand"><span class="her">Her</span><span>Браузер</span></div>
+      <div class="tag">Быстрый. Удобный. Для тебя.</div>
+      <div id="privLabel" hidden>Приватная вкладка: история не сохраняется</div>
+      <input id="homeSearch" type="text" spellcheck="false" autocomplete="off" placeholder="🔍  Введите адрес или поисковый запрос">
+      <div id="shortcuts"></div>
+    </div>
+  </div>
+
+  <div id="error" hidden>
+    <div id="errIcon">📡</div>
+    <div id="errMsg"></div>
+    <button id="errRetry" class="primary">Повторить</button>
+  </div>
+
+  <aside id="panel" hidden>
+    <header>
+      <h2 id="panelTitle"></h2>
+      <div id="panelActions"></div>
+      <button id="panelClose" class="icon small">✕</button>
+    </header>
+    <div id="panelBody"></div>
+  </aside>
+</div>
+
+<div id="menu" hidden></div>
+<div id="modal" hidden><div id="modalBox"></div></div>
+<div id="toast" hidden></div>
+
+<script src="renderer.js"></script>
+<script src="panels.js"></script>
+</body>
+</html>
